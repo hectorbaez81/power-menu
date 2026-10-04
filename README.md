@@ -1,51 +1,34 @@
 # Power Menu
 
-A Ryoku shell plugin (`power-menu`). This scaffold is a working demo: a counter that
-ticks once a second, a mark on the bar, and a panel with a RESET button. Edit it
-into your own widget.
+A bar glyph (the power symbol) that opens a panel with six session actions:
+Log out, Lock, Suspend, Hibernate, Reboot, Power off.
 
-## What it does
+## What runs
 
-- **Service** (`service/Main.qml`): the logic, no UI. Holds the live state the
-  views read through `pluginApi.mainInstance`.
-- **Widget** (`content/Widget.qml`): the one view the host mounts. A left click
-  toggles the panel; it never changes state.
-- **Panel** (`content/Panel.qml`): the bar panel the host renders under the
-  glyph when this plugin is on the bar.
+- Lock: `ryoku-shell lock`
+- Suspend: `ryoku-shell suspend` (the shell takes its secure lock first)
+- Hibernate: `bin/hibernate.sh`, which runs `ryoku-shell lock`, waits until the
+  `ryoku-idle` journal reports `Wayland session got locked`, then runs
+  `systemctl hibernate --check-inhibitors=no`. If the lock is not confirmed within
+  about 10 seconds it notifies and does not hibernate.
+- Log out: `hyprctl dispatch "hl.dsp.exit()"`
+- Reboot / Power off: `systemctl reboot` / `systemctl poweroff`
 
-## What it reads and writes
+## What it reads
 
-The demo reads nothing off the machine and writes nothing. When you add real
-behaviour, keep to the rules in `AGENTS.md`: read settings through
-`pluginApi.pluginSettings` behind a default, write them only through
-`pluginApi.saveSetting(key, value)`, and write files only under
-`pluginApi.stateDir`. Every external command belongs in `bin/` or in
-`dependencies.commands`; every host you contact belongs in
-`capabilities.network`; a privileged action runs only through `pkexec` listed in
-`capabilities.privileged`.
+The `ryoku-idle` lines in the system journal, only in `bin/hibernate.sh`.
 
-## Settings
+## What it writes
 
-| key       | type   | default | description         |
-| --------- | ------ | ------- | ------------------- |
-| showCount | toggle | true    | Show the tick count |
+Nothing. No files, no network.
 
-## Preview
+## Privileged actions
 
-Capture a real screenshot of the widget and save it as
-`assets/preview-widget.png`, then list it under `files` in `manifest.json`. The
-store shows it in the catalogue.
+None through this plugin. Hibernating past the shell's sleep inhibitor needs the
+polkit rule `org.freedesktop.login1.hibernate-ignore-inhibit` to be allowed for the
+active local session (a system-level rule, not shipped by this plugin).
 
-## Build, check, install
+## Settings (QS Bar Settings > Community)
 
-```
-ryoku plugin validate .
-ryoku plugin add . --bar --yes
-```
-
-It lists under **Community** in QS Bar Settings. Publish it only when you want
-to share it: `ryoku plugin share power-menu`.
-
-## Author
-
-hbaez <hbaez@localhost>: this plugin is community-made (`official` is false).
+- Ask before acting: the first click arms a row, the second runs it. Lock never asks.
+- Show/hide each of the six actions.

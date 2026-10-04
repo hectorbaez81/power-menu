@@ -1,32 +1,70 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 
-// service/Main.qml is the plugin's logic: no UI. The host loads one instance and
-// hands it to every view as pluginApi.mainInstance, so the widget and the panel
-// read the same live state. Replace the demo counter below with your plugin's
-// real state and the singletons or bin/ scripts that feed it.
+// Logic only: the six session actions, the arm-then-confirm flow and the
+// per-action visibility settings. The widget and the panel share this instance.
 Item {
     id: svc
 
-    // Set by the host after this loads; the plugin's settings live behind it.
-    // Read settings through pluginApi.pluginSettings, always behind a default,
-    // and write them only through pluginApi.saveSetting(key, value) (R5).
     property var pluginApi
     readonly property var settings: pluginApi ? pluginApi.pluginSettings : null
 
-    // Demo state: a counter that ticks once a second.
-    property int count: 0
+    readonly property bool confirm: settings && settings.confirm !== undefined ? settings.confirm : true
 
-    // The panel's RESET button calls this.
-    function reset() {
-        svc.count = 0;
+    readonly property var actions: [
+        { id: "logout",    label: "Log out",   needsConfirm: true  },
+        { id: "lock",      label: "Lock",      needsConfirm: false },
+        { id: "suspend",   label: "Suspend",   needsConfirm: true  },
+        { id: "hibernate", label: "Hibernate", needsConfirm: true  },
+        { id: "reboot",    label: "Reboot",    needsConfirm: true  },
+        { id: "poweroff",  label: "Power off", needsConfirm: true  }
+    ]
+
+    // id of the action waiting for its confirming second click, or "".
+    property string armed: ""
+
+    function enabled(id) {
+        var key = "show_" + id;
+        return settings && settings[key] !== undefined ? settings[key] : true;
+    }
+
+    function argvFor(id) {
+        switch (id) {
+        case "logout":    return ["hyprctl", "dispatch", "hl.dsp.exit()"];
+        case "lock":      return ["ryoku-shell", "lock"];
+        case "suspend":   return ["ryoku-shell", "suspend"];
+        case "hibernate": return [svc.pluginApi.pluginDir + "/bin/hibernate.sh"];
+        case "reboot":    return ["systemctl", "reboot"];
+        case "poweroff":  return ["systemctl", "poweroff"];
+        }
+        return [];
+    }
+
+    function run(id) {
+        var needs = false;
+        for (var i = 0; i < actions.length; i++) {
+            if (actions[i].id === id)
+                needs = actions[i].needsConfirm;
+        }
+        if (svc.confirm && needs && svc.armed !== id) {
+            svc.armed = id;
+            disarm.restart();
+            return;
+        }
+        svc.armed = "";
+        disarm.stop();
+        var argv = svc.argvFor(id);
+        if (argv.length > 0)
+            Quickshell.execDetached(argv);
+        if (svc.pluginApi)
+            svc.pluginApi.closePanel();
     }
 
     Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: svc.count += 1
+        id: disarm
+        interval: 4000
+        onTriggered: svc.armed = ""
     }
 }

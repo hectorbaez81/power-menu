@@ -2,8 +2,8 @@
   "id": "power-menu",
   "name": "Power Menu",
   "version": "0.1.0",
-  "author": "hbaez \u003chbaez@localhost\u003e",
-  "description": "Power Menu is a Ryoku shell plugin.",
+  "author": "hbaez <hbaez@localhost>",
+  "description": "Log out, lock, suspend, hibernate, reboot and power off from one bar panel.",
   "license": "MIT",
   "official": false,
   "hosts": [
@@ -15,9 +15,11 @@
     "panel": "content/Panel.qml"
   },
   "panel": {
-    "width": 320
+    "width": 260
   },
-  "files": [],
+  "files": [
+    "bin/hibernate.sh"
+  ],
   "capabilities": {
     "densities": [
       "glyph",
@@ -29,17 +31,23 @@
     "label": "Power Menu"
   },
   "dependencies": {
-    "commands": []
+    "commands": [
+      "ryoku-shell",
+      "systemctl",
+      "hyprctl",
+      "journalctl",
+      "notify-send"
+    ]
   },
   "metadata": {
     "settings": [
-      {
-        "key": "showCount",
-        "type": "toggle",
-        "label": "Show the tick count",
-        "group": "Power Menu",
-        "default": true
-      }
+      { "key": "confirm", "type": "toggle", "label": "Ask before acting (click twice)", "group": "Behavior", "default": true },
+      { "key": "show_logout", "type": "toggle", "label": "Show Log out", "group": "Actions", "default": true },
+      { "key": "show_lock", "type": "toggle", "label": "Show Lock", "group": "Actions", "default": true },
+      { "key": "show_suspend", "type": "toggle", "label": "Show Suspend", "group": "Actions", "default": true },
+      { "key": "show_hibernate", "type": "toggle", "label": "Show Hibernate", "group": "Actions", "default": true },
+      { "key": "show_reboot", "type": "toggle", "label": "Show Reboot", "group": "Actions", "default": true },
+      { "key": "show_poweroff", "type": "toggle", "label": "Show Power off", "group": "Actions", "default": true }
     ]
   }
 }

@@ -1,23 +1,19 @@
 import QtQuick
 import Ryoku.PluginKit.Singletons
 
-// content/Panel.qml is the bar panel: when this plugin is on the bar and the
-// manifest declares entryPoints.panel, the host renders this file under the
-// plugin's glyph in the shared panel surface (Escape or an outside click closes
-// it, one panel open at a time). The host sets pluginApi, density ("full"), s,
-// widthBudget (from manifest panel.width) and active; report implicitHeight and
-// the host sizes the card to it.
+// The panel: one row per action. With "Ask before acting" on, the first click
+// arms a row ("Click again to confirm") and the second runs it; the arm drops
+// after four seconds.
 Item {
     id: root
 
     property var pluginApi
     property string density: "full"
     property real s: 1
-    property real widthBudget: 320
+    property real widthBudget: 260
     property bool active: false
 
     readonly property var service: pluginApi ? pluginApi.mainInstance : null
-    readonly property int count: service ? service.count : 0
 
     implicitWidth: root.widthBudget
     implicitHeight: col.implicitHeight + 24 * root.s
@@ -27,41 +23,41 @@ Item {
         x: 12 * root.s
         y: 12 * root.s
         width: root.width - 24 * root.s
-        spacing: 10 * root.s
+        spacing: 6 * root.s
 
-        Text {
-            text: "Demo plugin"
-            color: Theme.bright
-            font.family: Theme.display
-            font.pixelSize: 16 * root.s
-        }
+        Repeater {
+            model: root.service ? root.service.actions : []
 
-        Text {
-            text: "Ticks: " + root.count
-            color: Theme.dim
-            font.family: Theme.font
-            font.pixelSize: 13 * root.s
-        }
+            delegate: Rectangle {
+                id: row
+                required property var modelData
 
-        Rectangle {
-            width: resetLabel.implicitWidth + 24 * root.s
-            height: resetLabel.implicitHeight + 12 * root.s
-            radius: Theme.radius
-            color: resetArea.pressed ? Theme.vermDeep : Theme.accent
+                readonly property bool armedNow: root.service && root.service.armed === row.modelData.id
 
-            Text {
-                id: resetLabel
-                anchors.centerIn: parent
-                text: "RESET"
-                color: Theme.cardBot
-                font.family: Theme.font
-                font.pixelSize: 12 * root.s
-            }
+                visible: root.service ? root.service.enabled(row.modelData.id) : false
+                width: col.width
+                height: visible ? 38 * root.s : 0
+                radius: Theme.radius
+                color: row.armedNow ? Theme.accent : (area.containsMouse ? Theme.cardBot : "transparent")
+                border.width: 1
+                border.color: row.armedNow ? Theme.accent : Theme.dim
 
-            MouseArea {
-                id: resetArea
-                anchors.fill: parent
-                onClicked: if (root.service) root.service.reset()
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.leftMargin: 12 * root.s
+                    text: row.armedNow ? "Click again to confirm: " + row.modelData.label : row.modelData.label
+                    color: row.armedNow ? Theme.cardBot : Theme.bright
+                    font.family: Theme.font
+                    font.pixelSize: 13 * root.s
+                }
+
+                MouseArea {
+                    id: area
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: if (root.service) root.service.run(row.modelData.id)
+                }
             }
         }
     }
