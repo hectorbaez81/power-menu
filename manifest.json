@@ -15,7 +15,7 @@
     "panel": "content/Panel.qml"
   },
   "panel": {
-    "width": 260
+    "width": 300
   },
   "files": [
     "bin/hibernate.sh"
